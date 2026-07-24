@@ -15,7 +15,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 static enum zmk_unibody_mode current_mode = ZMK_UNIBODY_MODE_DONGLE;
 
+#if IS_ENABLED(CONFIG_ZMK_BLE)
 extern int update_advertising(void);
+#endif
 extern int zmk_split_peripheral_ble_set_enabled(bool en);
 
 enum zmk_unibody_mode zmk_unibody_get_mode(void) {
@@ -44,14 +46,18 @@ void zmk_unibody_set_mode(enum zmk_unibody_mode mode) {
 
     // Reset advertising states
     if (mode == ZMK_UNIBODY_MODE_DONGLE) {
+#if IS_ENABLED(CONFIG_ZMK_BLE)
         // Stop standard HOG advertising
         update_advertising();
+#endif
         // Start split peripheral advertising
         zmk_split_peripheral_ble_set_enabled(true);
     } else {
         // Stop split peripheral advertising (already done during disconnect)
+#if IS_ENABLED(CONFIG_ZMK_BLE)
         // Start standard HOG BLE advertising
         update_advertising();
+#endif
     }
 }
 
