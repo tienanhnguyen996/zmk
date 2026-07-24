@@ -23,11 +23,21 @@
 #endif
 
 #include <zephyr/init.h>
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+#include <zmk/role_manager.h>
+#endif
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 const struct zmk_split_transport_peripheral *active_transport;
+
+int zmk_split_peripheral_ble_set_enabled(bool en) {
+    if (active_transport && active_transport->api && active_transport->api->set_enabled) {
+        return active_transport->api->set_enabled(en);
+    }
+    return -ENODEV;
+}
 
 int zmk_split_transport_peripheral_command_handler(
     const struct zmk_split_transport_peripheral *transport,
@@ -149,6 +159,17 @@ int split_peripheral_listener(const zmk_event_t *eh) {
     LOG_DBG("");
     const struct zmk_position_state_changed *pos_ev;
     if ((pos_ev = as_zmk_position_state_changed(eh)) != NULL) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+        if (pos_ev->position == CONFIG_ZMK_UNIBODY_TOGGLE_KEY_POSITION) {
+            if (pos_ev->state) {
+                zmk_unibody_toggle_mode();
+            }
+            return ZMK_EV_EVENT_HANDLED;
+        }
+        if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DIRECT) {
+            return ZMK_EV_EVENT_BUBBLE;
+        }
+#endif
         struct zmk_split_transport_peripheral_event ev = {
             .type = ZMK_SPLIT_TRANSPORT_PERIPHERAL_EVENT_TYPE_KEY_POSITION_EVENT,
             .data = {.key_position_event = {
@@ -157,11 +178,21 @@ int split_peripheral_listener(const zmk_event_t *eh) {
                      }}};
 
         zmk_split_peripheral_report_event(&ev);
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+        return ZMK_EV_EVENT_HANDLED;
+#else
+        return ZMK_EV_EVENT_BUBBLE;
+#endif
     }
 
 #if ZMK_KEYMAP_HAS_SENSORS
     const struct zmk_sensor_event *sensor_ev;
     if ((sensor_ev = as_zmk_sensor_event(eh)) != NULL) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+        if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DIRECT) {
+            return ZMK_EV_EVENT_BUBBLE;
+        }
+#endif
         if (sensor_ev->channel_data_size != 1) {
             return -ENOTSUP;
         }
@@ -174,12 +205,22 @@ int split_peripheral_listener(const zmk_event_t *eh) {
                      }}};
 
         zmk_split_peripheral_report_event(&ev);
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+        return ZMK_EV_EVENT_HANDLED;
+#else
+        return ZMK_EV_EVENT_BUBBLE;
+#endif
     }
 #endif /* ZMK_KEYMAP_HAS_SENSORS */
 
 #if IS_ENABLED(CONFIG_ZMK_BATTERY_REPORTING)
     const struct zmk_battery_state_changed *battery_ev;
     if ((battery_ev = as_zmk_battery_state_changed(eh)) != NULL) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+        if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DIRECT) {
+            return ZMK_EV_EVENT_BUBBLE;
+        }
+#endif
         struct zmk_split_transport_peripheral_event ev = {
             .type = ZMK_SPLIT_TRANSPORT_PERIPHERAL_EVENT_TYPE_BATTERY_EVENT,
             .data = {.battery_event = {
@@ -187,6 +228,11 @@ int split_peripheral_listener(const zmk_event_t *eh) {
                      }}};
 
         zmk_split_peripheral_report_event(&ev);
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+        return ZMK_EV_EVENT_HANDLED;
+#else
+        return ZMK_EV_EVENT_BUBBLE;
+#endif
     }
 #endif // IS_ENABLED(CONFIG_ZMK_BATTERY_REPORTING)
 

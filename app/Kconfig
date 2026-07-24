@@ -131,9 +131,23 @@ config ZMK_HID_SEPARATE_MOD_RELEASE_REPORT
 
 menu "Output Types"
 
+config ZMK_UNIBODY_HYBRID
+    bool "Dynamic Unibody Hybrid Role (Dongle/Direct)"
+    depends on ZMK_SPLIT
+    help
+      Allows a unibody keyboard to dynamically switch between acting as a 
+      split peripheral (Slave) to a Dongle and a standalone Central keyboard.
+
+config ZMK_UNIBODY_TOGGLE_KEY_POSITION
+    int "Key position to toggle mode"
+    default 0
+    depends on ZMK_UNIBODY_HYBRID
+    help
+      The physical key matrix position that will trigger role toggling.
+
 config ZMK_USB
     bool "USB"
-    depends on (!ZMK_SPLIT || (ZMK_SPLIT && ZMK_SPLIT_ROLE_CENTRAL))
+    depends on (!ZMK_SPLIT || (ZMK_SPLIT && ZMK_SPLIT_ROLE_CENTRAL) || ZMK_UNIBODY_HYBRID)
     select USB
     select USB_DEVICE_STACK
     select USB_DEVICE_HID

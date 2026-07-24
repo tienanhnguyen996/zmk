@@ -35,6 +35,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/keys.h>
 #include <zmk/split/bluetooth/uuid.h>
 #include <zmk/event_manager.h>
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+#include <zmk/role_manager.h>
+#endif
 #include <zmk/events/ble_active_profile_changed.h>
 
 #if IS_ENABLED(CONFIG_ZMK_BLE_PASSKEY_ENTRY)
@@ -175,6 +178,19 @@ bool zmk_ble_profile_is_connected(uint8_t index) {
     advertising_status = ZMK_ADV_CONN;
 
 int update_advertising(void) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DONGLE) {
+        if (advertising_status != ZMK_ADV_NONE) {
+            int err = bt_le_adv_stop();
+            advertising_status = ZMK_ADV_NONE;
+            if (err) {
+                LOG_ERR("Failed to stop advertising (err %d)", err);
+                return err;
+            }
+        }
+        return 0;
+    }
+#endif
     int err = 0;
     bt_addr_le_t *addr;
     struct bt_conn *conn;
