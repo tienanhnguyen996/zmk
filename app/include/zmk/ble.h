@@ -9,6 +9,10 @@
 #include <zmk/keys.h>
 #include <zmk/ble/profile.h>
 
+#ifndef CONFIG_BT_MAX_PAIRED
+#define CONFIG_BT_MAX_PAIRED 0
+#endif
+
 #define ZMK_BLE_IS_CENTRAL                                                                         \
     (IS_ENABLED(CONFIG_ZMK_SPLIT_BLE) && IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL))
 
