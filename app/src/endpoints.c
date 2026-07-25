@@ -20,6 +20,9 @@
 #include <zmk/events/ble_active_profile_changed.h>
 #include <zmk/events/usb_conn_state_changed.h>
 #include <zmk/events/endpoint_changed.h>
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+#include <zmk/role_manager.h>
+#endif
 
 #include <zephyr/logging/log.h>
 
@@ -248,6 +251,11 @@ static int send_consumer_report(void) {
 }
 
 int zmk_endpoint_send_report(uint16_t usage_page) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DONGLE) {
+        return 0;
+    }
+#endif
     LOG_DBG("usage page 0x%02X", usage_page);
     switch (usage_page) {
     case HID_USAGE_KEY:
@@ -263,6 +271,11 @@ int zmk_endpoint_send_report(uint16_t usage_page) {
 
 #if IS_ENABLED(CONFIG_ZMK_POINTING)
 int zmk_endpoint_send_mouse_report() {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DONGLE) {
+        return 0;
+    }
+#endif
     switch (current_instance.transport) {
     case ZMK_TRANSPORT_NONE:
         return 0;
