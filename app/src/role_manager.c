@@ -62,6 +62,15 @@ void zmk_unibody_set_mode(enum zmk_unibody_mode mode) {
 }
 
 void zmk_unibody_toggle_mode(void) {
+    static int64_t last_toggle_time = 0;
+    int64_t now = k_uptime_get();
+
+    // Cooldown window of 200ms to block double-toggles and switch bounce
+    if (now - last_toggle_time < 200) {
+        return;
+    }
+    last_toggle_time = now;
+
     if (current_mode == ZMK_UNIBODY_MODE_DONGLE) {
         zmk_unibody_set_mode(ZMK_UNIBODY_MODE_DIRECT);
     } else {
