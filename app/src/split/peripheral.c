@@ -158,14 +158,35 @@ static int peripheral_init(void) {
 
 SYS_INIT(peripheral_init, APPLICATION, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
 
+static int toggle_key_position = -2;
+
+static void find_toggle_key_position(void) {
+    toggle_key_position = -1;
+    for (int layer = 0; layer < ZMK_KEYMAP_LAYERS_LEN; layer++) {
+        for (int pos = 0; pos < ZMK_KEYMAP_LEN; pos++) {
+            const struct zmk_behavior_binding *binding = zmk_keymap_get_layer_binding_at_idx(layer, pos);
+            if (!binding) {
+                continue;
+            }
+            if (binding->behavior_dev && strcmp(binding->behavior_dev, UNIBODY_TOGGLE) == 0) {
+                LOG_INF("Found unibody toggle key at position %d on layer %d", pos, layer);
+                toggle_key_position = pos;
+                return;
+            }
+        }
+    }
+    LOG_WRN("Unibody toggle key not found in keymap!");
+}
+
 int split_peripheral_listener(const zmk_event_t *eh) {
     LOG_DBG("");
     const struct zmk_position_state_changed *pos_ev;
     if ((pos_ev = as_zmk_position_state_changed(eh)) != NULL) {
 #if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
-        zmk_keymap_layer_id_t layer = zmk_keymap_layer_index_to_id(zmk_keymap_highest_layer_active());
-        const struct zmk_behavior_binding *binding = zmk_keymap_get_layer_binding_at_idx(layer, pos_ev->position);
-        if (binding && binding->behavior_dev && strcmp(binding->behavior_dev, UNIBODY_TOGGLE) == 0) {
+        if (toggle_key_position == -2) {
+            find_toggle_key_position();
+        }
+        if (toggle_key_position != -1 && pos_ev->position == toggle_key_position) {
             if (pos_ev->state) {
                 zmk_unibody_toggle_mode();
             }
