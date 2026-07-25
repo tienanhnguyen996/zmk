@@ -12,6 +12,7 @@
 #include <drivers/behavior.h>
 #include <zmk/behavior.h>
 #include <zmk/physical_layouts.h>
+#include <zmk/matrix.h>
 
 #include <zmk/event_manager.h>
 #include <zmk/events/position_state_changed.h>
