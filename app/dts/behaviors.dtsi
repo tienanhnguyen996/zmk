@@ -29,6 +29,4 @@
 #include <behaviors/studio_unlock.dtsi>
 #include <behaviors/mouse_keys.dtsi>
 
-#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
 #include <behaviors/unibody_toggle.dtsi>
-#endif
