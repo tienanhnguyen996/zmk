@@ -314,13 +314,46 @@ static struct settings_handler ble_peripheral_settings_handler = {
 
 #endif // IS_ENABLED(CONFIG_SETTINGS)
 
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+#if defined(CONFIG_SOC_SERIES_NRF52X)
+#include <hal/nrf_ficr.h>
+#endif
+
+static void get_deterministic_address(bt_addr_le_t *addr, bool identity_1) {
+    addr->type = BT_ADDR_LE_RANDOM;
+
+    uint32_t devaddr[2] = { 0x12345678, 0x9ABCDEF0 };
+#if defined(CONFIG_SOC_SERIES_NRF52X)
+    devaddr[0] = NRF_FICR->DEVICEADDR[0];
+    devaddr[1] = NRF_FICR->DEVICEADDR[1];
+#endif
+
+    addr->a.val[0] = devaddr[0] & 0xFF;
+    addr->a.val[1] = (devaddr[0] >> 8) & 0xFF;
+    addr->a.val[2] = (devaddr[0] >> 16) & 0xFF;
+    addr->a.val[3] = (devaddr[0] >> 24) & 0xFF;
+    addr->a.val[4] = devaddr[1] & 0xFF;
+    addr->a.val[5] = ((devaddr[1] >> 8) & 0xFF) | 0xC0; // Static random mask
+
+    if (identity_1) {
+        addr->a.val[0] ^= 0x01; // Toggle first byte LSB to differentiate ID 1 from ID 0
+    }
+}
+#endif
+
 static int zmk_peripheral_ble_init(void) {
 #if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    bt_addr_le_t addr0;
+    bt_addr_le_t addr1;
+
+    get_deterministic_address(&addr0, false);
+    get_deterministic_address(&addr1, true);
+
     // Pre-create Identity 0
-    bt_id_create(NULL, NULL);
+    bt_id_create(&addr0, NULL);
 
     // Pre-create Identity 1
-    int id = bt_id_create(NULL, NULL);
+    int id = bt_id_create(&addr1, NULL);
     if (id < 0) {
         LOG_ERR("Failed to create Identity 1: %d", id);
     } else {
