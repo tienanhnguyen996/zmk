@@ -11,5 +11,17 @@
             #binding-cells = <0>;
             display-name = "Unibody Toggle";
         };
+
+        unibody_dongle: unibody_dongle {
+            compatible = "zmk,behavior-unibody-dongle";
+            #binding-cells = <0>;
+            display-name = "Unibody Dongle";
+        };
+
+        unibody_direct: unibody_direct {
+            compatible = "zmk,behavior-unibody-direct";
+            #binding-cells = <0>;
+            display-name = "Unibody Direct";
+        };
     };
 };

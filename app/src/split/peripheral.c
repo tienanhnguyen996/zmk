@@ -165,11 +165,23 @@ int split_peripheral_listener(const zmk_event_t *eh) {
 #if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
         zmk_keymap_layer_id_t layer = zmk_keymap_layer_index_to_id(zmk_keymap_highest_layer_active());
         const struct zmk_behavior_binding *binding = zmk_keymap_get_layer_binding_at_idx(layer, pos_ev->position);
-        if (binding && binding->behavior_dev && strcmp(binding->behavior_dev, UNIBODY_TOGGLE) == 0) {
-            if (pos_ev->state) {
-                zmk_unibody_toggle_mode();
+        if (binding && binding->behavior_dev) {
+            if (strcmp(binding->behavior_dev, "behavior_unibody_toggle") == 0) {
+                if (pos_ev->state) {
+                    zmk_unibody_toggle_mode();
+                }
+                return ZMK_EV_EVENT_HANDLED;
+            } else if (strcmp(binding->behavior_dev, "behavior_unibody_dongle") == 0) {
+                if (pos_ev->state) {
+                    zmk_unibody_set_mode(ZMK_UNIBODY_MODE_DONGLE);
+                }
+                return ZMK_EV_EVENT_HANDLED;
+            } else if (strcmp(binding->behavior_dev, "behavior_unibody_direct") == 0) {
+                if (pos_ev->state) {
+                    zmk_unibody_set_mode(ZMK_UNIBODY_MODE_DIRECT);
+                }
+                return ZMK_EV_EVENT_HANDLED;
             }
-            return ZMK_EV_EVENT_HANDLED;
         }
         if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DIRECT) {
             return ZMK_EV_EVENT_BUBBLE;
