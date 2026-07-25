@@ -1,17 +1,23 @@
 # Zephyr™ Mechanical Keyboard (ZMK) Firmware - Dynamic 2-Mode Hybrid Fork
 
 > [!WARNING]
-> **DISCLAIMER:** This fork contains highly experimental, **UNTESTED** code. It is **100% vibe code** written to explore dynamic Central/Peripheral role switching. Use at your own risk!
+> **CRITICAL WARNING:** This fork contains highly experimental code that is **not suitable for general production use**. 
+> Due to sharing a single BLE local identity (MAC address) for both Direct (host PC) and Dongle modes, host PCs may auto-reconnect and hijack the Bluetooth link when switching back to Dongle mode. **Use this fork at your own risk.**
 
 ---
 
-### What is this fork for?
+### Current Implementation State & Limitations
 
 This fork implements a **Dynamic 2-Mode Hybrid Keyboard role** (`CONFIG_ZMK_UNIBODY_HYBRID`) designed for unibody keyboards using a USB-powered ZMK Dongle:
+
 1. **Dongle Mode (Split Peripheral):** The unibody keyboard behaves as a split peripheral (Slave), sending raw matrix keypresses wirelessly to a USB Dongle (Central) plugged into the PC.
 2. **Direct Mode (Standalone Keyboard):** The unibody keyboard behaves as a standard standalone Central keyboard, connecting directly to the host device via USB or Bluetooth.
 
-A single GPIO direct keyscan key (e.g. shorting D0 to GND on a Seeed Studio XIAO BLE) is intercepted locally on the keyboard to toggle between these two modes instantly, changing the BLE advertising profiles on the fly.
+A toggle key (`&unibody_toggle`) assigned on the Adjust Layer (Layer 3) switches between these two modes instantly.
+
+#### **Known Limitation (Connection Hijack):**
+* **The issue:** The split connection and your PC connections share the same MAC address (Identity 0). When switching to Dongle mode, the host PC may auto-reconnect, taking over the BLE slot and blocking the Dongle.
+* **The workaround:** You must manually disable Bluetooth on your PC (or disconnect the keyboard from your PC's Bluetooth menu) when switching to Dongle mode to allow the Dongle to connect.
 
 ---
 
