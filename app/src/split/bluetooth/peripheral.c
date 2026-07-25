@@ -47,6 +47,7 @@ static const struct bt_data zmk_ble_ad[] = {
 static bool is_connected = false;
 
 static bool is_bonded = false;
+static uint8_t split_peripheral_id = BT_ID_DEFAULT;
 
 static void each_bond(const struct bt_bond_info *info, void *user_data) {
     bt_addr_le_t *addr = (bt_addr_le_t *)user_data;
@@ -58,17 +59,45 @@ static void each_bond(const struct bt_bond_info *info, void *user_data) {
 
 static int start_advertising(bool low_duty) {
     bt_addr_le_t central_addr = bt_addr_le_none;
+    uint8_t id = BT_ID_DEFAULT;
 
-    bt_foreach_bond(BT_ID_DEFAULT, each_bond, &central_addr);
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    id = split_peripheral_id;
+#endif
+
+    bt_foreach_bond(id, each_bond, &central_addr);
 
     if (bt_addr_le_cmp(&central_addr, BT_ADDR_LE_NONE) != 0) {
         is_bonded = true;
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+        struct bt_le_adv_param adv_param = {
+            .id = id,
+            .options = BT_LE_ADV_OPT_CONNECTABLE,
+            .interval_min = low_duty ? BT_GAP_ADV_SLOW_INT_MIN : BT_GAP_ADV_FAST_INT_MIN_2,
+            .interval_max = low_duty ? BT_GAP_ADV_SLOW_INT_MAX : BT_GAP_ADV_FAST_INT_MAX_2,
+            .peer = &central_addr,
+        };
+        if (low_duty) {
+            adv_param.options |= BT_LE_ADV_OPT_DIR_MODE_LOW_DUTY;
+        }
+#else
         struct bt_le_adv_param adv_param = low_duty ? *BT_LE_ADV_CONN_DIR_LOW_DUTY(&central_addr)
                                                     : *BT_LE_ADV_CONN_DIR(&central_addr);
+#endif
         return bt_le_adv_start(&adv_param, NULL, 0, NULL, 0);
     } else {
         is_bonded = false;
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+        struct bt_le_adv_param adv_param = {
+            .id = id,
+            .options = BT_LE_ADV_OPT_CONNECTABLE,
+            .interval_min = BT_GAP_ADV_FAST_INT_MIN_2,
+            .interval_max = BT_GAP_ADV_FAST_INT_MAX_2,
+        };
+        return bt_le_adv_start(&adv_param, zmk_ble_ad, ARRAY_SIZE(zmk_ble_ad), NULL, 0);
+#else
         return bt_le_adv_start(BT_LE_ADV_CONN_FAST_2, zmk_ble_ad, ARRAY_SIZE(zmk_ble_ad), NULL, 0);
+#endif
     }
 };
 
@@ -85,6 +114,12 @@ static void advertising_cb(struct k_work *work) {
 K_WORK_DEFINE(advertising_work, advertising_cb);
 
 static void connected(struct bt_conn *conn, uint8_t err) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    struct bt_conn_info info;
+    if (bt_conn_get_info(conn, &info) == 0 && info.id != split_peripheral_id) {
+        return;
+    }
+#endif
     is_connected = (err == 0);
 
     raise_zmk_split_peripheral_status_changed(
@@ -104,6 +139,12 @@ static void recycled(void) {
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    struct bt_conn_info info;
+    if (bt_conn_get_info(conn, &info) == 0 && info.id != split_peripheral_id) {
+        return;
+    }
+#endif
     char addr[BT_ADDR_LE_STR_LEN];
 
     bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
@@ -238,7 +279,7 @@ static int zmk_peripheral_ble_complete_startup(void) {
 #if IS_ENABLED(CONFIG_ZMK_BLE_CLEAR_BONDS_ON_START)
     LOG_WRN("Clearing all existing BLE bond information from the keyboard");
 
-    bt_unpair(BT_ID_DEFAULT, NULL);
+    bt_unpair(split_peripheral_id, NULL);
 #else
     bt_conn_cb_register(&conn_callbacks);
     bt_conn_auth_info_cb_register(&zmk_peripheral_ble_auth_info_cb);
@@ -247,6 +288,13 @@ static int zmk_peripheral_ble_complete_startup(void) {
 
     settings_loaded = true;
     k_work_submit(&notify_status_work);
+
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    if (enabled) {
+        bt_le_adv_stop();
+        k_work_submit(&advertising_work);
+    }
+#endif
 #endif
 
     return 0;
@@ -267,6 +315,20 @@ static struct settings_handler ble_peripheral_settings_handler = {
 #endif // IS_ENABLED(CONFIG_SETTINGS)
 
 static int zmk_peripheral_ble_init(void) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    // Pre-create Identity 0
+    bt_id_create(NULL, NULL);
+
+    // Pre-create Identity 1
+    int id = bt_id_create(NULL, NULL);
+    if (id < 0) {
+        LOG_ERR("Failed to create Identity 1: %d", id);
+    } else {
+        LOG_INF("Created split peripheral identity: %d", id);
+        split_peripheral_id = id;
+    }
+#endif
+
     int err = bt_enable(NULL);
 
     if (err && err != -EALREADY) {

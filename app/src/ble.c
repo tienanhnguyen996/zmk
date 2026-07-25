@@ -520,6 +520,11 @@ static void connected(struct bt_conn *conn, uint8_t err) {
 
     bt_conn_get_info(conn, &info);
 
+    if (info.id != BT_ID_DEFAULT) {
+        LOG_DBG("SKIPPING FOR SPLIT IDENTITY %d", info.id);
+        return;
+    }
+
     if (info.role != BT_CONN_ROLE_PERIPHERAL) {
         LOG_DBG("SKIPPING FOR ROLE %d", info.role);
         return;
@@ -553,6 +558,11 @@ static void disconnected(struct bt_conn *conn, uint8_t reason) {
     LOG_DBG("Disconnected from %s (reason 0x%02x)", addr, reason);
 
     bt_conn_get_info(conn, &info);
+
+    if (info.id != BT_ID_DEFAULT) {
+        LOG_DBG("SKIPPING FOR SPLIT IDENTITY %d", info.id);
+        return;
+    }
 
     if (info.role != BT_CONN_ROLE_PERIPHERAL) {
         LOG_DBG("SKIPPING FOR ROLE %d", info.role);

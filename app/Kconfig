@@ -144,6 +144,9 @@ config BT_MAX_PAIRED
 config BT_MAX_CONN
     default 2 if ZMK_UNIBODY_HYBRID
 
+config BT_ID_MAX
+    default 2 if ZMK_UNIBODY_HYBRID
+
 config ZMK_USB
     bool "USB"
     depends on (!ZMK_SPLIT || (ZMK_SPLIT && ZMK_SPLIT_ROLE_CENTRAL) || ZMK_UNIBODY_HYBRID)
