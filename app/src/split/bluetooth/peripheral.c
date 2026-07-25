@@ -269,7 +269,7 @@ static struct settings_handler ble_peripheral_settings_handler = {
 static int zmk_peripheral_ble_init(void) {
     int err = bt_enable(NULL);
 
-    if (err) {
+    if (err && err != -EALREADY) {
         LOG_ERR("BLUETOOTH FAILED (%d)", err);
         return err;
     }
