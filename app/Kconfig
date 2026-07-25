@@ -133,7 +133,7 @@ menu "Output Types"
 
 config ZMK_UNIBODY_HYBRID
     bool "Dynamic Unibody Hybrid Role (Dongle/Direct)"
-    depends on ZMK_SPLIT
+    depends on ZMK_SPLIT && !ZMK_SPLIT_ROLE_CENTRAL
     help
       Allows a unibody keyboard to dynamically switch between acting as a 
       split peripheral (Slave) to a Dongle and a standalone Central keyboard.
