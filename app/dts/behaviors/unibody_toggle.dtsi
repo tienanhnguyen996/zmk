@@ -1,0 +1,15 @@
+/*
+ * Copyright (c) 2026 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/ {
+    behaviors {
+        unibody_toggle: unibody_toggle {
+            compatible = "zmk,behavior-unibody-toggle";
+            #binding-cells = <0>;
+            display-name = "Unibody Toggle";
+        };
+    };
+};
