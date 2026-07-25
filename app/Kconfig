@@ -138,6 +138,12 @@ config ZMK_UNIBODY_HYBRID
       Allows a unibody keyboard to dynamically switch between acting as a 
       split peripheral (Slave) to a Dongle and a standalone Central keyboard.
 
+config BT_MAX_PAIRED
+    default 6 if ZMK_UNIBODY_HYBRID
+
+config BT_MAX_CONN
+    default 2 if ZMK_UNIBODY_HYBRID
+
 config ZMK_USB
     bool "USB"
     depends on (!ZMK_SPLIT || (ZMK_SPLIT && ZMK_SPLIT_ROLE_CENTRAL) || ZMK_UNIBODY_HYBRID)
