@@ -22,6 +22,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/position_state_changed.h>
 #include <zmk/events/layer_state_changed.h>
 #include <zmk/events/sensor_event.h>
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+#include <zmk/role_manager.h>
+#endif
 
 static zmk_keymap_layers_state_t _zmk_keymap_layer_locks = 0;
 static zmk_keymap_layers_state_t _zmk_keymap_layer_state = 0;
@@ -815,6 +818,11 @@ int zmk_keymap_sensor_event(uint8_t sensor_index,
 #endif /* ZMK_KEYMAP_HAS_SENSORS */
 
 int keymap_listener(const zmk_event_t *eh) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DONGLE) {
+        return 0;
+    }
+#endif
     const struct zmk_position_state_changed *pos_ev;
     if ((pos_ev = as_zmk_position_state_changed(eh)) != NULL) {
         return zmk_keymap_position_state_changed(pos_ev->source, pos_ev->position, pos_ev->state,
