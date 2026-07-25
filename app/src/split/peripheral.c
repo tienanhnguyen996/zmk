@@ -24,8 +24,10 @@
 
 #include <zephyr/init.h>
 #if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+#include <zephyr/devicetree.h>
 #include <zmk/role_manager.h>
 #include <zmk/keymap.h>
+#define UNIBODY_TOGGLE DEVICE_DT_NAME(DT_INST(0, zmk_behavior_unibody_toggle))
 #endif
 #include <zephyr/logging/log.h>
 
@@ -163,7 +165,7 @@ int split_peripheral_listener(const zmk_event_t *eh) {
 #if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
         zmk_keymap_layer_id_t layer = zmk_keymap_layer_index_to_id(zmk_keymap_highest_layer_active());
         const struct zmk_behavior_binding *binding = zmk_keymap_get_layer_binding_at_idx(layer, pos_ev->position);
-        if (binding && binding->behavior_dev && strcmp(binding->behavior_dev, "unibody_toggle") == 0) {
+        if (binding && binding->behavior_dev && strcmp(binding->behavior_dev, UNIBODY_TOGGLE) == 0) {
             if (pos_ev->state) {
                 zmk_unibody_toggle_mode();
             }
