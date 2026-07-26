@@ -1,12 +1,11 @@
 # Zephyr™ Mechanical Keyboard (ZMK) Firmware - Dynamic 2-Mode Hybrid Fork
 
 > [!WARNING]
-> **CRITICAL WARNING:** This fork contains highly experimental code that is **not suitable for general production use**. 
-> Due to sharing a single BLE local identity (MAC address) for both Direct (host PC) and Dongle modes, host PCs may auto-reconnect and hijack the Bluetooth link when switching back to Dongle mode. **Use this fork at your own risk.**
+> **CRITICAL WARNING:** This fork contains highly experimental code that is **not suitable for general production use**. **Use this fork at your own risk.**
 
 ---
 
-### Current Implementation State & Limitations
+### Current Implementation State & Features
 
 This fork implements a **Dynamic 2-Mode Hybrid Keyboard role** (`CONFIG_ZMK_UNIBODY_HYBRID`) designed for unibody keyboards using a USB-powered ZMK Dongle:
 
@@ -15,9 +14,16 @@ This fork implements a **Dynamic 2-Mode Hybrid Keyboard role** (`CONFIG_ZMK_UNIB
 
 A toggle key (`&unibody_toggle`) assigned on the Adjust Layer (Layer 3) switches between these two modes instantly.
 
-#### **Known Limitation (Connection Hijack):**
-* **The issue:** The split connection and your PC connections share the same MAC address (Identity 0). When switching to Dongle mode, the host PC may auto-reconnect, taking over the BLE slot and blocking the Dongle.
-* **The workaround:** You must manually disable Bluetooth on your PC (or disconnect the keyboard from your PC's Bluetooth menu) when switching to Dongle mode to allow the Dongle to connect.
+#### **BLE Identity Separation (No Connection Hijacking):**
+This fork resolves the BLE connection hijacking issue by utilizing Zephyr's multiple local identity support:
+* **Identity 0 (Direct Mode):** Uses the hardware default BLE MAC address to pair and connect directly to host PCs.
+* **Identity 1 (Dongle Mode):** Generates a deterministic static random BLE MAC address derived from the MCU's FICR (factory information configuration registers), toggling the address LSB to differentiate it.
+This ensures your PC and the USB Dongle see the keyboard as two entirely distinct Bluetooth devices, preventing the PC from hijacking the connection when switching to Dongle mode.
+
+#### **Dynamic Hybrid Mode Behavioral Details in Dongle Mode:**
+* **Local Layer Tracking:** The keyboard (peripheral) runs keymap processing locally in `DONGLE` mode to maintain correct layer tracking. This is required so the peripheral can intercept and execute the mode switch behaviors (`&unibody_toggle`, `&unibody_dongle`, `&unibody_direct`) locally when they are pressed on a higher layer.
+* **Global Stateful Behaviors (RGB & Power):** To prevent duplicate/conflicting executions, global stateful behaviors (such as `rgb_ug`, `ext_power`, and `backlight`) are bypassed locally on the peripheral when in `DONGLE` mode. They are evaluated on the central (Dongle) and executed on the peripheral only when commanded by the central over BLE.
+* **Combos:** Local combo detection is bypassed on the peripheral in `DONGLE` mode. Combos are forwarded as raw key positions and fully evaluated on the central (Dongle).
 
 ---
 
