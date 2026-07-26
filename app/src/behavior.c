@@ -21,6 +21,10 @@
 #include <zmk/split/central.h>
 #endif
 
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+#include <zmk/role_manager.h>
+#endif
+
 #include <drivers/behavior.h>
 #include <zmk/behavior.h>
 #include <zmk/hid.h>
@@ -107,6 +111,11 @@ int zmk_behavior_invoke_binding(const struct zmk_behavior_binding *src_binding,
 #if IS_ENABLED(CONFIG_ZMK_SPLIT) && IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
         for (int i = 0; i < ZMK_SPLIT_CENTRAL_PERIPHERAL_COUNT; i++) {
             zmk_split_central_invoke_behavior(i, &binding, event, pressed);
+        }
+#endif
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+        if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DONGLE) {
+            return 0;
         }
 #endif
         return invoke_locally(&binding, event, pressed);

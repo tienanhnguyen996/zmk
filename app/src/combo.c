@@ -23,6 +23,10 @@
 #include <zmk/keymap.h>
 #include <zmk/virtual_key_position.h>
 
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+#include <zmk/role_manager.h>
+#endif
+
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
@@ -508,6 +512,12 @@ static int keycode_state_changed_listener(const zmk_event_t *eh) {
 }
 
 int behavior_combo_listener(const zmk_event_t *eh) {
+#if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
+    if (zmk_unibody_get_mode() == ZMK_UNIBODY_MODE_DONGLE) {
+        return ZMK_EV_EVENT_BUBBLE;
+    }
+#endif
+
     if (as_zmk_position_state_changed(eh) != NULL) {
         return position_state_changed_listener(eh);
     } else if (as_zmk_keycode_state_changed(eh) != NULL) {
