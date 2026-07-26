@@ -28,6 +28,8 @@
 #include <zmk/role_manager.h>
 #include <zmk/keymap.h>
 #define UNIBODY_TOGGLE DEVICE_DT_NAME(DT_INST(0, zmk_behavior_unibody_toggle))
+#define UNIBODY_DONGLE DEVICE_DT_NAME(DT_INST(0, zmk_behavior_unibody_dongle))
+#define UNIBODY_DIRECT DEVICE_DT_NAME(DT_INST(0, zmk_behavior_unibody_direct))
 #endif
 #include <zephyr/logging/log.h>
 
@@ -163,20 +165,37 @@ int split_peripheral_listener(const zmk_event_t *eh) {
     const struct zmk_position_state_changed *pos_ev;
     if ((pos_ev = as_zmk_position_state_changed(eh)) != NULL) {
 #if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
-        zmk_keymap_layer_id_t layer = zmk_keymap_layer_index_to_id(zmk_keymap_highest_layer_active());
-        const struct zmk_behavior_binding *binding = zmk_keymap_get_layer_binding_at_idx(layer, pos_ev->position);
+        const struct zmk_behavior_binding *binding = NULL;
+        for (int layer_idx = ZMK_KEYMAP_LAYERS_LEN - 1; layer_idx >= 0; layer_idx--) {
+            zmk_keymap_layer_id_t layer_id = zmk_keymap_layer_index_to_id(layer_idx);
+            if (layer_id == ZMK_KEYMAP_LAYER_ID_INVAL) {
+                continue;
+            }
+            if (zmk_keymap_layer_active(layer_id)) {
+                const struct zmk_behavior_binding *layer_binding =
+                    zmk_keymap_get_layer_binding_at_idx(layer_id, pos_ev->position);
+                if (layer_binding && layer_binding->behavior_dev) {
+                    if (strcmp(layer_binding->behavior_dev, "behavior_transparent") == 0) {
+                        continue;
+                    }
+                    binding = layer_binding;
+                    break;
+                }
+            }
+        }
+
         if (binding && binding->behavior_dev) {
-            if (strcmp(binding->behavior_dev, "behavior_unibody_toggle") == 0) {
+            if (strcmp(binding->behavior_dev, UNIBODY_TOGGLE) == 0) {
                 if (pos_ev->state) {
                     zmk_unibody_toggle_mode();
                 }
                 return ZMK_EV_EVENT_HANDLED;
-            } else if (strcmp(binding->behavior_dev, "behavior_unibody_dongle") == 0) {
+            } else if (strcmp(binding->behavior_dev, UNIBODY_DONGLE) == 0) {
                 if (pos_ev->state) {
                     zmk_unibody_set_mode(ZMK_UNIBODY_MODE_DONGLE);
                 }
                 return ZMK_EV_EVENT_HANDLED;
-            } else if (strcmp(binding->behavior_dev, "behavior_unibody_direct") == 0) {
+            } else if (strcmp(binding->behavior_dev, UNIBODY_DIRECT) == 0) {
                 if (pos_ev->state) {
                     zmk_unibody_set_mode(ZMK_UNIBODY_MODE_DIRECT);
                 }

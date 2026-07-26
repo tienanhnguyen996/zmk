@@ -315,18 +315,17 @@ static struct settings_handler ble_peripheral_settings_handler = {
 #endif // IS_ENABLED(CONFIG_SETTINGS)
 
 #if IS_ENABLED(CONFIG_ZMK_UNIBODY_HYBRID)
-#if defined(CONFIG_SOC_SERIES_NRF52X)
-#include <hal/nrf_ficr.h>
+#if !defined(CONFIG_SOC_SERIES_NRF52X)
+#error "CONFIG_ZMK_UNIBODY_HYBRID is only supported on nRF52 series SoCs due to hardware-based deterministic MAC address generation requirements."
 #endif
+#include <hal/nrf_ficr.h>
 
 static void get_deterministic_address(bt_addr_le_t *addr, bool identity_1) {
     addr->type = BT_ADDR_LE_RANDOM;
 
-    uint32_t devaddr[2] = { 0x12345678, 0x9ABCDEF0 };
-#if defined(CONFIG_SOC_SERIES_NRF52X)
+    uint32_t devaddr[2];
     devaddr[0] = NRF_FICR->DEVICEADDR[0];
     devaddr[1] = NRF_FICR->DEVICEADDR[1];
-#endif
 
     addr->a.val[0] = devaddr[0] & 0xFF;
     addr->a.val[1] = (devaddr[0] >> 8) & 0xFF;
@@ -350,12 +349,19 @@ static int zmk_peripheral_ble_init(void) {
     get_deterministic_address(&addr1, true);
 
     // Pre-create Identity 0
-    bt_id_create(&addr0, NULL);
+    int id0 = bt_id_create(&addr0, NULL);
+    __ASSERT(id0 >= 0, "Failed to create BLE Identity 0");
+    if (id0 < 0) {
+        LOG_ERR("Failed to create Identity 0: %d", id0);
+        return id0;
+    }
 
     // Pre-create Identity 1
     int id = bt_id_create(&addr1, NULL);
+    __ASSERT(id >= 0, "Failed to create BLE Identity 1");
     if (id < 0) {
         LOG_ERR("Failed to create Identity 1: %d", id);
+        return id;
     } else {
         LOG_INF("Created split peripheral identity: %d", id);
         split_peripheral_id = id;
